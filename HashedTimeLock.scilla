@@ -1,0 +1,338 @@
+(* HashedTimeLock contract *)
+
+(***************************************************)
+(*               Associated library                *)
+(***************************************************)
+library HashedTimeLock
+
+let one_msg = 
+  fun (msg : Message) => 
+  let nil_msg = Nil {Message} in
+  Cons {Message} msg nil_msg
+
+let not_owner_code = Int32 1
+let not_such_lockId = Int32 2
+let not_such_receiver = Int32 3
+let lock_has_refunded = Int32 4
+let lock_has_withdrawned = Int32 5
+let amount_invalid = Int32 6
+
+let zero_amount = Uint128 0
+
+let lockExists =
+  fun (lockContractSender : Map ByStr32 ByStr20) => fun (lockId : ByStr32) =>
+    let x = builtin contains lockContractSender lockId in
+    match x with
+    | True => True
+    | False => False
+    end
+    
+let hashLockMatches =
+  fun (lockContractHValue : Map (ByStr32) (ByStr32)) => fun (lockId : ByStr32) => fun (preimage : String) =>
+    let hValue = builtin get lockContractHValue lockId in
+    match hValue with
+    | None => False
+    | Some hValue => 
+        let computeHValue = builtin sha256hash preimage in
+        builtin eq hValue computeHValue
+    end
+
+let withdrawable =
+    fun (lockContractReceiver : Map (ByStr32) (ByStr20)) => fun (lockContractNLockNum : Map (ByStr32) (BNum)) => fun (lockId : ByStr32) => fun (sender : ByStr20) => fun (currentBlock : BNum) =>
+    let receiver = builtin get lockContractReceiver lockId in
+    match receiver with
+    | None => False
+    | Some receiver => 
+        let isReceiver = builtin eq sender receiver in
+        match isReceiver with
+        | False => False
+        | True =>
+            let nLockNum = builtin get lockContractNLockNum lockId in
+            match nLockNum with
+            | None => False
+            | Some nLockNum =>
+                let isWithdrawLocked = builtin blt currentBlock nLockNum  in
+                match isWithdrawLocked with
+                | True => True
+                | False => False
+                end
+            end
+        end
+    end
+
+let refundable =
+    fun (lockContractSender : Map (ByStr32) (ByStr20)) => fun (lockContractNLockNum : Map (ByStr32) (BNum)) => fun (lockId : ByStr32) => fun (sender : ByStr20) => fun (currentBlock : BNum) =>
+    let lockSender = builtin get lockContractSender lockId in
+    match lockSender with
+    | None => False
+    | Some lockSender => 
+        let isSender = builtin eq sender lockSender in
+        match isSender with
+        | False => False
+        | True =>
+            let nLockNum = builtin get lockContractNLockNum lockId in
+            match nLockNum with
+            | None => False
+            | Some nLockNum =>
+                let isRefundLocked = builtin blt currentBlock nLockNum  in
+                match isRefundLocked with
+                | False => True
+                | True => False
+                end
+            end
+        end
+    end
+
+let refunded = 
+    fun (lockContractRefunded : Map (ByStr32) (Bool)) => fun (lockId : ByStr32) =>
+    let refunded = builtin get lockContractRefunded lockId in
+    match refunded with
+    | None => False
+    | Some refunded => 
+        refunded
+    end
+
+let withdrawned = 
+    fun (lockContractWithdrawn : Map (ByStr32) (Bool)) => fun (lockId : ByStr32) =>
+    let withdrawned = builtin get lockContractWithdrawn lockId in
+    match withdrawned with
+    | None => False
+    | Some withdrawned => 
+        withdrawned
+    end
+
+let validLockNum =
+    fun (lockNum : BNum) => fun (currentBlock : BNum) =>
+    builtin blt currentBlock lockNum
+    
+    
+(***************************************************)
+(*             The contract definition             *)
+(***************************************************)
+
+contract HashedTimeLock
+()
+
+field lockContractSender : Map ByStr32 ByStr20 = Emp ByStr32 ByStr20
+
+field lockContractReceiver : Map ByStr32 ByStr20 = Emp ByStr32 ByStr20
+
+field lockContractAmount : Map ByStr32 Uint128 = Emp ByStr32 Uint128
+
+field lockContractHValue : Map ByStr32 ByStr32 = Emp ByStr32 ByStr32
+
+field lockContractNLockNum : Map ByStr32 BNum = Emp ByStr32 BNum
+
+field lockContractWithdrawn : Map ByStr32 Bool = Emp ByStr32 Bool
+
+field lockContractRefunded : Map ByStr32 Bool = Emp ByStr32 Bool
+
+field lockContractPreimage : Map ByStr32 String = Emp ByStr32 String
+
+transition newLock (receiver : ByStr20, hValue : ByStr32, nLockNum : BNum)
+    isAmountValid = builtin lt zero_amount _amount;
+    
+    mapLCS <- lockContractSender;
+    mapLCR <- lockContractReceiver;
+    mapLCA <- lockContractAmount;
+    mapLCH <- lockContractHValue;
+    mapLCN <- lockContractNLockNum;
+    mapLCW <- lockContractWithdrawn;
+    mapLCRF <- lockContractRefunded;
+    mapLCP <- lockContractPreimage;
+    
+    currentBlock <- & BLOCKNUMBER;
+    
+    isValidLockNum = validLockNum nLockNum currentBlock;
+    
+    match isValidLockNum with
+    | True =>
+        match isAmountValid with
+        | True =>
+            accept;
+            concatPair = Pair {(ByStr20) (ByStr20)} _sender receiver;
+            concatHash = builtin sha256hash concatPair;
+            concatPair = Pair {(ByStr32) (Uint128)} concatHash _amount;
+            concatHash = builtin sha256hash concatPair;
+            concatPair = Pair {(ByStr32) (ByStr32)} concatHash hValue;
+            concatHash = builtin sha256hash concatPair;
+            concatPair = Pair {(ByStr32) (BNum)} concatHash nLockNum;
+            lockId = builtin sha256hash concatPair;
+            isLockExist = lockExists mapLCS lockId;
+            match isLockExist with
+            | True =>
+                msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "contract ID exists!"};
+                msgs = one_msg msg;
+                send msgs
+            | False =>
+                addSender = builtin put mapLCS lockId _sender;
+                lockContractSender := addSender;
+                addReceiver = builtin put mapLCR lockId receiver;
+                lockContractReceiver := addReceiver;
+                addAmount = builtin put mapLCA lockId _amount;
+                lockContractAmount := addAmount;
+                addHValue = builtin put mapLCH lockId hValue;
+                lockContractHValue := addHValue;
+                addNLockNum = builtin put mapLCN lockId nLockNum;
+                lockContractNLockNum := addNLockNum;
+                isWithdrawn = False;
+                addWithdrawn = builtin put mapLCW lockId isWithdrawn;
+                lockContractWithdrawn := addWithdrawn;
+                isRefunded = False;
+                addRefunded = builtin put mapLCRF lockId isRefunded;
+                lockContractRefunded := addRefunded;
+                
+                e = { _eventname : "LogHTLCNew"; lockId : lockId; sender : _sender; receiver : receiver; amount : _amount; hValue : hValue;  nLockNum: nLockNum};
+                event e;
+                
+                msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "new contract success!"};
+                msgs = one_msg msg;
+                send msgs
+            end
+        | False =>
+            msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "newContractFailed, amount invalid!"};
+            msgs = one_msg msg;
+            send msgs
+        end
+    | False =>
+        msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "newContractFailed, nLockNum invalid!"};
+        msgs = one_msg msg;
+        send msgs
+    end
+end
+
+transition withdraw(lockId : ByStr32, preimage : String)
+    mapLCS <- lockContractSender;
+    mapLCR <- lockContractReceiver;
+    mapLCA <- lockContractAmount;
+    mapLCH <- lockContractHValue;
+    mapLCN <- lockContractNLockNum;
+    mapLCW <- lockContractWithdrawn;
+    mapLCRF <- lockContractRefunded;
+    mapLCP <- lockContractPreimage;
+    
+    currentBlock <- & BLOCKNUMBER;
+
+    isLockExist = lockExists mapLCS lockId;
+    match isLockExist with
+    | True =>
+        isWithdrawable = withdrawable mapLCR mapLCN lockId _sender currentBlock;
+        match isWithdrawable with
+        | True =>
+            isHashlockMatches = hashLockMatches mapLCH lockId preimage;
+            match isHashlockMatches with
+            | True =>
+                isRefunded = refunded mapLCRF lockId;
+                match isRefunded with
+                | False =>
+                    isWithdrawned = withdrawned mapLCW lockId;
+                    match isWithdrawned with
+                    | False =>
+                        isWithdrawn = True;
+                        addWithdrawn = builtin put mapLCW lockId isWithdrawn;
+                        lockContractWithdrawn := addWithdrawn;
+                        addPreimage = builtin put mapLCP lockId preimage;
+                        lockContractPreimage := addPreimage;
+                        amount = builtin get mapLCA lockId;
+                        match amount with
+                        | Some amount =>
+                            e = { _eventname : "LogHTLCWithdraw"; lockId : lockId; preimage : preimage};
+                            event e;
+                            
+                            msg = {_tag : "Main"; _recipient : _sender; _amount : amount; msg : "withdraw success!"};
+                            msgs = one_msg msg;
+                            send msgs                            
+                        | None =>
+                            msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "withdraw failed, no amount!"};
+                            msgs = one_msg msg;
+                            send msgs  
+                        end
+                    | True =>  
+                        msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "withdraw failed, lock contract has withdrawned!"};
+                        msgs = one_msg msg;
+                        send msgs
+                    end
+                | True =>  
+                    msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "withdraw failed, lock contract has refunded!"};
+                    msgs = one_msg msg;
+                    send msgs
+                end
+            | False =>
+                msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "withdraw failed, hash lock not match!"};
+                msgs = one_msg msg;
+                send msgs 
+            end
+        | False =>
+            msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "withdraw failed, no such receiver or nLockNum more than block number!"};
+            msgs = one_msg msg;
+            send msgs
+        end
+    | False =>
+        msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "withdraw failed, no such lockId!"};
+        msgs = one_msg msg;
+        send msgs        
+    end
+end
+
+transition refund(lockId : ByStr32)
+    mapLCS <- lockContractSender;
+    mapLCR <- lockContractReceiver;
+    mapLCA <- lockContractAmount;
+    mapLCH <- lockContractHValue;
+    mapLCN <- lockContractNLockNum;
+    mapLCW <- lockContractWithdrawn;
+    mapLCRF <- lockContractRefunded;
+    mapLCP <- lockContractPreimage;
+
+    currentBlock <- & BLOCKNUMBER;
+
+    isLockExist = lockExists mapLCS lockId;
+    match isLockExist with
+    | True => 
+        isRefundable = refundable mapLCS mapLCN lockId _sender currentBlock;
+        match isRefundable with
+        | True =>
+            isRefunded = refunded mapLCRF lockId;
+            match isRefunded with
+            | False =>
+                isWithdrawned = withdrawned mapLCW lockId;
+                match isWithdrawned with
+                | False =>
+                    isRefunded = True;
+                    addRefunded = builtin put mapLCRF lockId isRefunded;
+                    lockContractRefunded := addRefunded;
+                    amount = builtin get mapLCA lockId;
+                    match amount with
+                    | Some amount =>
+                        e = { _eventname : "LogHTLCRefund"; lockId : lockId};
+                        event e;
+                        
+                        msg = {_tag : "Main"; _recipient : _sender; _amount : amount; msg : "refunded success!"};
+                        msgs = one_msg msg;
+                        send msgs                            
+                    | None =>
+                        msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; code : amount_invalid ; msg : "refunded failed, no amount!"};
+                        msgs = one_msg msg;
+                        send msgs  
+                    end
+                | True =>  
+                    msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; code : lock_has_withdrawned; msg : "refund failed, lock has withdrawned!"};
+                    msgs = one_msg msg;
+                    send msgs
+                end
+            | True =>  
+                msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; code : lock_has_refunded ; msg : "refund failed, lock contract has refunded!"};
+                msgs = one_msg msg;
+                send msgs
+            end
+        | False =>
+            msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; code : not_such_receiver; msg : "refund failed, no such sender or nLockNum less than block number!"};
+            msgs = one_msg msg;
+            send msgs
+        end
+    | False =>
+        msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; code : not_such_lockId ; msg : "refund failed, no such lockId!"};
+        msgs = one_msg msg;
+        send msgs        
+    end
+end
