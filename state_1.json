@@ -1,0 +1,86 @@
+[
+    { "vname": "_balance", "type": "Uint128", "value": "120" },
+    {
+      "vname": "lockContractRefunded",
+      "type": "Map (ByStr32) (Bool)",
+      "value": [
+        {
+          "key":
+            "0x0e94f7cd903052f7f50b2fd3b68b7f1dc1a073ad465e6005578bcf0e7dcdb27f",
+          "val": { "constructor": "False", "argtypes": [], "arguments": [] }
+        }
+      ]
+    },
+    {
+      "vname": "lockContractWithdrawn",
+      "type": "Map (ByStr32) (Bool)",
+      "value": [
+        {
+          "key":
+            "0x0e94f7cd903052f7f50b2fd3b68b7f1dc1a073ad465e6005578bcf0e7dcdb27f",
+          "val": { "constructor": "False", "argtypes": [], "arguments": [] }
+        }
+      ]
+    },
+    {
+      "vname": "lockContractNLockNum",
+      "type": "Map (ByStr32) (Uint128)",
+      "value": [
+        {
+          "key":
+            "0x0e94f7cd903052f7f50b2fd3b68b7f1dc1a073ad465e6005578bcf0e7dcdb27f",
+          "val": "100000"
+        }
+      ]
+    },
+    {
+      "vname": "lockContractHValue",
+      "type": "Map (ByStr32) (ByStr32)",
+      "value": [
+        {
+          "key":
+            "0x0e94f7cd903052f7f50b2fd3b68b7f1dc1a073ad465e6005578bcf0e7dcdb27f",
+          "val":
+            "0xca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee47bb"
+        }
+      ]
+    },
+    {
+      "vname": "lockContractAmount",
+      "type": "Map (ByStr32) (Uint128)",
+      "value": [
+        {
+          "key":
+            "0x0e94f7cd903052f7f50b2fd3b68b7f1dc1a073ad465e6005578bcf0e7dcdb27f",
+          "val": "120"
+        }
+      ]
+    },
+    {
+      "vname": "lockContractReceiver",
+      "type": "Map (ByStr32) (ByStr20)",
+      "value": [
+        {
+          "key":
+            "0x0e94f7cd903052f7f50b2fd3b68b7f1dc1a073ad465e6005578bcf0e7dcdb27f",
+          "val": "0x1234567890123456789012345678901234567890"
+        }
+      ]
+    },
+    {
+      "vname": "lockContractSender",
+      "type": "Map (ByStr32) (ByStr20)",
+      "value": [
+        {
+          "key":
+            "0x0e94f7cd903052f7f50b2fd3b68b7f1dc1a073ad465e6005578bcf0e7dcdb27f",
+          "val": "0x7253c9cc8ea5dcb69022fd63f962608b34184878"
+        }
+      ]
+    },
+    {
+      "vname": "lockContractPreimage",
+      "type": "Map (ByStr32) (String)",
+      "value": []
+    }
+  ]

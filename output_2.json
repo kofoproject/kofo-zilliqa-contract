@@ -1,0 +1,130 @@
+{
+  "scilla_major_version": "0",
+  "gas_remaining": "6437",
+  "_accepted": "true",
+  "message": {
+    "_tag": "Main",
+    "_amount": "0",
+    "_recipient": "0x7253c9cc8ea5dcb69022fd63f962608b34184878",
+    "params": [
+      { "vname": "msg", "type": "String", "value": "new contract success!" }
+    ]
+  },
+  "states": [
+    { "vname": "_balance", "type": "Uint128", "value": "120" },
+    {
+      "vname": "lockContractSender",
+      "type": "Map (ByStr32) (ByStr20)",
+      "value": [
+        {
+          "key":
+            "0xd3d7d311c8fb26fc7cbd9b57e61b3fc9654c92a7651086595bfbcae70969f179",
+          "val": "0x7253c9cc8ea5dcb69022fd63f962608b34184878"
+        }
+      ]
+    },
+    {
+      "vname": "lockContractReceiver",
+      "type": "Map (ByStr32) (ByStr20)",
+      "value": [
+        {
+          "key":
+            "0xd3d7d311c8fb26fc7cbd9b57e61b3fc9654c92a7651086595bfbcae70969f179",
+          "val": "0x1234567890123456789012345678901234567890"
+        }
+      ]
+    },
+    {
+      "vname": "lockContractAmount",
+      "type": "Map (ByStr32) (Uint128)",
+      "value": [
+        {
+          "key":
+            "0xd3d7d311c8fb26fc7cbd9b57e61b3fc9654c92a7651086595bfbcae70969f179",
+          "val": "120"
+        }
+      ]
+    },
+    {
+      "vname": "lockContractHValue",
+      "type": "Map (ByStr32) (ByStr32)",
+      "value": [
+        {
+          "key":
+            "0xd3d7d311c8fb26fc7cbd9b57e61b3fc9654c92a7651086595bfbcae70969f179",
+          "val":
+            "0xca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+        }
+      ]
+    },
+    {
+      "vname": "lockContractNLockNum",
+      "type": "Map (ByStr32) (Uint128)",
+      "value": [
+        {
+          "key":
+            "0xd3d7d311c8fb26fc7cbd9b57e61b3fc9654c92a7651086595bfbcae70969f179",
+          "val": "100000"
+        }
+      ]
+    },
+    {
+      "vname": "lockContractWithdrawn",
+      "type": "Map (ByStr32) (Bool)",
+      "value": [
+        {
+          "key":
+            "0xd3d7d311c8fb26fc7cbd9b57e61b3fc9654c92a7651086595bfbcae70969f179",
+          "val": { "constructor": "False", "argtypes": [], "arguments": [] }
+        }
+      ]
+    },
+    {
+      "vname": "lockContractRefunded",
+      "type": "Map (ByStr32) (Bool)",
+      "value": [
+        {
+          "key":
+            "0xd3d7d311c8fb26fc7cbd9b57e61b3fc9654c92a7651086595bfbcae70969f179",
+          "val": { "constructor": "False", "argtypes": [], "arguments": [] }
+        }
+      ]
+    },
+    {
+      "vname": "lockContractPreimage",
+      "type": "Map (ByStr32) (String)",
+      "value": []
+    }
+  ],
+  "events": [
+    {
+      "_eventname": "LogHTLCNew",
+      "params": [
+        {
+          "vname": "lockId",
+          "type": "ByStr32",
+          "value":
+            "0xd3d7d311c8fb26fc7cbd9b57e61b3fc9654c92a7651086595bfbcae70969f179"
+        },
+        {
+          "vname": "sender",
+          "type": "ByStr20",
+          "value": "0x7253c9cc8ea5dcb69022fd63f962608b34184878"
+        },
+        {
+          "vname": "receiver",
+          "type": "ByStr20",
+          "value": "0x1234567890123456789012345678901234567890"
+        },
+        { "vname": "amount", "type": "Uint128", "value": "120" },
+        {
+          "vname": "hValue",
+          "type": "ByStr32",
+          "value":
+            "0xca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+        },
+        { "vname": "nLockNum", "type": "Uint128", "value": "100000" }
+      ]
+    }
+  ]
+}
