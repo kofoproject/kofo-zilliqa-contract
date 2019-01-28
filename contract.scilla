@@ -23,7 +23,7 @@ let zero_amount = Uint128 0
 
     
 let hashLockMatches =
-    fun (hValue : ByStr32) => fun (preimage : String) =>
+    fun (hValue : Option  ByStr32) => fun (preimage : String) =>
     match hValue with
     | None => False
     | Some hValue => 
