@@ -1,0 +1,69 @@
+{
+  "scilla_major_version": "0",
+  "gas_remaining": "6918",
+  "_accepted": "false",
+  "message": {
+    "_tag": "Main",
+    "_amount": "120",
+    "_recipient": "0x7253c9cc8ea5dcb69022fd63f962608b34184878",
+    "params": [
+      { "vname": "msg", "type": "String", "value": "refunded success!" }
+    ]
+  },
+  "states": [
+    { "vname": "_balance", "type": "Uint128", "value": "0" },
+    {
+      "vname": "lockContractRefunded",
+      "type": "Map (ByStr32) (Bool)",
+      "value": []
+    },
+    {
+      "vname": "lockContractWithdrawn",
+      "type": "Map (ByStr32) (Bool)",
+      "value": []
+    },
+    {
+      "vname": "lockContractNLockNum",
+      "type": "Map (ByStr32) (Uint128)",
+      "value": []
+    },
+    {
+      "vname": "lockContractHValue",
+      "type": "Map (ByStr32) (ByStr32)",
+      "value": []
+    },
+    {
+      "vname": "lockContractAmount",
+      "type": "Map (ByStr32) (Uint128)",
+      "value": []
+    },
+    {
+      "vname": "lockContractReceiver",
+      "type": "Map (ByStr32) (ByStr20)",
+      "value": []
+    },
+    {
+      "vname": "lockContractSender",
+      "type": "Map (ByStr32) (ByStr20)",
+      "value": []
+    },
+    {
+      "vname": "lockContractPreimage",
+      "type": "Map (ByStr32) (String)",
+      "value": []
+    }
+  ],
+  "events": [
+    {
+      "_eventname": "LogHTLCRefund",
+      "params": [
+        {
+          "vname": "lockId",
+          "type": "ByStr32",
+          "value":
+            "0x0e94f7cd903052f7f50b2fd3b68b7f1dc1a073ad465e6005578bcf0e7dcdb27f"
+        }
+      ]
+    }
+  ]
+}
