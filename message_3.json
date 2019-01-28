@@ -1,0 +1,18 @@
+{
+  "_tag": "withdraw",
+  "params": [
+    {   
+      "vname": "lockId",
+      "type": "ByStr32",
+      "value": "0x0e94f7cd903052f7f50b2fd3b68b7f1dc1a073ad465e6005578bcf0e7dcdb27f"
+    },  
+    {   
+      "vname": "preimage",
+      "type": "String",
+      "value": "a"
+    }
+  ],  
+  "_amount": "120",
+  "_sender": "0x1234567890123456789012345678901234567890"
+}
+

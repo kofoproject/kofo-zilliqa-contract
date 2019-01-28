@@ -1,0 +1,1 @@
+{"_tag":"newLock","params":[{"vname":"receiver","type":"ByStr20","value":"0x1234567890123456789012345678901234567890"},{"vname":"hValue","type":"ByStr32","value":"0xca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee47bb"},{"vname":"nLockNum","type":"Uint128","value":"100000"}],"_amount":"120","_sender":"0x7253c9cc8ea5dcb69022fd63f962608b34184878"}
