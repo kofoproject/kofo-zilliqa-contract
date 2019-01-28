@@ -21,17 +21,9 @@ let amount_invalid = Int32 6
 
 let zero_amount = Uint128 0
 
-let lockExists =
-  fun (lockContractSender : Map ByStr32 ByStr20) => fun (lockId : ByStr32) =>
-    let x = builtin contains lockContractSender lockId in
-    match x with
-    | True => True
-    | False => False
-    end
     
 let hashLockMatches =
-  fun (lockContractHValue : Map (ByStr32) (ByStr32)) => fun (lockId : ByStr32) => fun (preimage : String) =>
-    let hValue = builtin get lockContractHValue lockId in
+    fun (hValue : ByStr32) => fun (preimage : String) =>
     match hValue with
     | None => False
     | Some hValue => 
@@ -40,11 +32,10 @@ let hashLockMatches =
     end
 
 let withdrawable =
-    fun (lockContractReceiver : Map (ByStr32) (ByStr20)) =>
-    fun (lockContractNLockNum : Map (ByStr32) (Uint128)) =>
-    fun (lockId : ByStr32) => fun (sender : ByStr20) =>
+    fun (receiver : Option  ByStr20) =>
+    fun (nLockNum :  Option Uint128) =>
+    fun (sender : ByStr20) =>
     fun (currentBlock : BNum) =>
-    let receiver = builtin get lockContractReceiver lockId in
     match receiver with
     | None => False
     | Some receiver => 
@@ -52,7 +43,6 @@ let withdrawable =
         match isReceiver with
         | False => False
         | True =>
-            let nLockNum = builtin get lockContractNLockNum lockId in
             match nLockNum with
             | None => False
             | Some nLockNum =>
@@ -68,12 +58,10 @@ let withdrawable =
     end
 
 let refundable =
-    fun (lockContractSender : Map (ByStr32) (ByStr20)) =>
-    fun (lockContractNLockNum : Map (ByStr32) (Uint128)) =>
-    fun (lockId : ByStr32) =>
+    fun (lockSender : Option ByStr20) =>
+    fun (nLockNum : Option Uint128) =>
     fun (sender : ByStr20) =>
     fun (currentBlock : BNum) =>
-    let lockSender = builtin get lockContractSender lockId in
     match lockSender with
     | None => False
     | Some lockSender => 
@@ -81,7 +69,7 @@ let refundable =
         match isSender with
         | False => False
         | True =>
-            let nLockNum = builtin get lockContractNLockNum lockId in
+           
             match nLockNum with
             | None => False
             | Some nLockNum =>
@@ -96,26 +84,16 @@ let refundable =
         end
     end
 
-let refunded = 
-    fun (lockContractRefunded : Map (ByStr32) (Bool)) => fun (lockId : ByStr32) =>
-    let refunded = builtin get lockContractRefunded lockId in
-    match refunded with
-    | None => False
-    | Some refunded => 
-        refunded
-    end
-
-let withdrawned = 
-    fun (lockContractWithdrawn : Map (ByStr32) (Bool)) => fun (lockId : ByStr32) =>
-    let withdrawned = builtin get lockContractWithdrawn lockId in
-    match withdrawned with
-    | None => False
-    | Some withdrawned =>
-        withdrawned
-    end
-
+let realBoolValue = 
+   fun (boolValue : Option Bool) =>
+   match boolValue with 
+   | None => False 
+   | Some value => 
+      value 
+   end
 let validLockNum =
-    fun (lockNum : Uint128) => fun (currentBlock : BNum) =>
+    fun (lockNum : Uint128) =>
+    fun (currentBlock : BNum) =>
     let zeroBNum = BNum 0 in
     let lockNumBlock = builtin badd zeroBNum lockNum in
     builtin blt currentBlock lockNumBlock
@@ -205,38 +183,32 @@ transition newLock (receiver : ByStr20, hValue : ByStr32, nLockNum : Uint128)
 end
 
 transition withdraw(lockId : ByStr32, preimage : String)
-    mapLCS <- lockContractSender;
-    mapLCR <- lockContractReceiver;
-    mapLCA <- lockContractAmount;
-    mapLCH <- lockContractHValue;
-    mapLCN <- lockContractNLockNum;
-    mapLCW <- lockContractWithdrawn;
-    mapLCRF <- lockContractRefunded;
-    mapLCP <- lockContractPreimage;
-
+	
     currentBlock <- & BLOCKNUMBER;
-
     isLockExist <- exists lockContractSender[lockId];
     match isLockExist with
     | True =>
-        isWithdrawable = withdrawable mapLCR mapLCN lockId _sender currentBlock;
+	receiver <- lockContractReceiver[lockId];
+        nLockNum <- lockContractNLockNum[lockId];
+        isWithdrawable = withdrawable receiver nLockNum _sender currentBlock;
         match isWithdrawable with
         | True =>
-            isHashlockMatches = hashLockMatches mapLCH lockId preimage;
+	    hValue <- lockContractHValue[lockId];
+            isHashlockMatches = hashLockMatches hValue preimage;
             match isHashlockMatches with
             | True =>
-                isRefunded = refunded mapLCRF lockId;
-                match isRefunded with
+                refunded <- lockContractRefunded[lockId];
+		boolValue = realBoolValue refunded;
+                match boolValue with
                 | False =>
-                    isWithdrawned = withdrawned mapLCW lockId;
-                    match isWithdrawned with
+                    isWithdrawn <- lockContractWithdrawn[lockId];
+           	    boolValue = realBoolValue isWithdrawn;
+                    match boolValue with
                     | False =>
                         isWithdrawn = True;
-                        addWithdrawn = builtin put mapLCW lockId isWithdrawn;
-                        lockContractWithdrawn := addWithdrawn;
-                        addPreimage = builtin put mapLCP lockId preimage;
-                        lockContractPreimage := addPreimage;
-                        amount = builtin get mapLCA lockId;
+			lockContractWithdrawn[lockId] := isWithdrawn;
+                        lockContractPreimage[lockId] := preimage;
+                        amount <- lockContractAmount[lockId];
                         match amount with
                         | Some amount =>
                             delete lockContractSender[lockId];
@@ -286,33 +258,28 @@ transition withdraw(lockId : ByStr32, preimage : String)
 end
 
 transition refund(lockId : ByStr32)
-    mapLCS <- lockContractSender;
-    mapLCR <- lockContractReceiver;
-    mapLCA <- lockContractAmount;
-    mapLCH <- lockContractHValue;
-    mapLCN <- lockContractNLockNum;
-    mapLCW <- lockContractWithdrawn;
-    mapLCRF <- lockContractRefunded;
-    mapLCP <- lockContractPreimage;
 
     currentBlock <- & BLOCKNUMBER;
 
     isLockExist <- exists lockContractSender[lockId];
     match isLockExist with
     | True =>
-        isRefundable = refundable mapLCS mapLCN lockId _sender currentBlock;
+        contractSender <- lockContractSender[lockId];
+        nLockNum   <- lockContractNLockNum[lockId];
+        isRefundable = refundable contractSender nLockNum _sender currentBlock;
         match isRefundable with
         | True =>
-            isRefunded = refunded mapLCRF lockId;
-            match isRefunded with
+            isRefunded <- lockContractRefunded[lockId];
+	    boolValue = realBoolValue isRefunded;
+            match boolValue with
             | False =>
-                isWithdrawned = withdrawned mapLCW lockId;
-                match isWithdrawned with
+		isWithdrawn <- lockContractWithdrawn[lockId];
+		boolValue = realBoolValue isWithdrawn;
+                match boolValue with
                 | False =>
                     isRefunded = True;
-                    addRefunded = builtin put mapLCRF lockId isRefunded;
-                    lockContractRefunded := addRefunded;
-                    amount = builtin get mapLCA lockId;
+                    lockContractRefunded[lockId] := isRefunded;
+                    amount <- lockContractAmount[lockId];
                     match amount with
                     | Some amount =>
                         delete lockContractSender[lockId];
