@@ -21,12 +21,12 @@ let amount_invalid = Int32 6
 
 let zero_amount = Uint128 0
 
-    
+
 let hashLockMatches =
-    fun (hValue : Option  ByStr32) => fun (preimage : String) =>
+    fun (hValue : Option ByStr32) => fun (preimage : String) =>
     match hValue with
     | None => False
-    | Some hValue => 
+    | Some hValue =>
         let computeHValue = builtin sha256hash preimage in
         builtin eq hValue computeHValue
     end
@@ -38,7 +38,7 @@ let withdrawable =
     fun (currentBlock : BNum) =>
     match receiver with
     | None => False
-    | Some receiver => 
+    | Some receiver =>
         let isReceiver = builtin eq sender receiver in
         match isReceiver with
         | False => False
@@ -64,12 +64,12 @@ let refundable =
     fun (currentBlock : BNum) =>
     match lockSender with
     | None => False
-    | Some lockSender => 
+    | Some lockSender =>
         let isSender = builtin eq sender lockSender in
         match isSender with
         | False => False
         | True =>
-           
+
             match nLockNum with
             | None => False
             | Some nLockNum =>
@@ -84,12 +84,12 @@ let refundable =
         end
     end
 
-let realBoolValue = 
+let realBoolValue =
    fun (boolValue : Option Bool) =>
-   match boolValue with 
-   | None => False 
-   | Some value => 
-      value 
+   match boolValue with
+   | None => False
+   | Some value =>
+      value
    end
 let validLockNum =
     fun (lockNum : Uint128) =>
@@ -97,14 +97,26 @@ let validLockNum =
     let zeroBNum = BNum 0 in
     let lockNumBlock = builtin badd zeroBNum lockNum in
     builtin blt currentBlock lockNumBlock
-    
-    
+
+let refunded_illegal = Uint32 1
+let withdrawn_illegal = Uint32 2
+let lock_id_illegal = Uint32 3
+let amount_illegal = Uint32 4
+let receiver_illegal = Uint32 5
+let lock_num_illegal = Uint32 6
+let preimage_illegal = Uint32 7
+let lock_id_exist =  Uint32 8
+
+
 (***************************************************)
 (*             The contract definition             *)
 (***************************************************)
 
 contract HashedTimeLock
 (owner : ByStr20)
+
+
+
 
 field lockContractSender : Map ByStr32 ByStr20 = Emp ByStr32 ByStr20
 
@@ -125,9 +137,9 @@ field lockContractPreimage : Map ByStr32 String = Emp ByStr32 String
 transition newLock (receiver : ByStr20, hValue : ByStr32, nLockNum : Uint128)
     isAmountValid = builtin lt zero_amount _amount;
 
-    
+
     currentBlock <- & BLOCKNUMBER;
-    
+
     isValidLockNum = validLockNum nLockNum currentBlock;
 
     match isValidLockNum with
@@ -146,12 +158,11 @@ transition newLock (receiver : ByStr20, hValue : ByStr32, nLockNum : Uint128)
             lockId = builtin sha256hash final;
 
             isLockExist <- exists  lockContractSender[lockId];
-		
-            match isLockExist with 
+
+            match isLockExist with
             | True =>
-                msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "lock id exists!"};
-                msgs = one_msg msg;
-                send msgs
+                e = { _eventname : "error"; code : lock_id_exist};
+                event e
             | False =>
                 lockContractSender[lockId] :=  _sender;
                 lockContractReceiver[lockId] := receiver;
@@ -166,29 +177,27 @@ transition newLock (receiver : ByStr20, hValue : ByStr32, nLockNum : Uint128)
                 e = { _eventname : "LogHTLCNew"; lockId : lockId; sender : _sender; receiver : receiver; amount : _amount; hValue : hValue;  nLockNum: nLockNum};
                 event e;
 
-                msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "new contract success!"};
+                msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : final};
                 msgs = one_msg msg;
                 send msgs
             end
         | False =>
-            msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "newContractFailed, amount invalid!"};
-            msgs = one_msg msg;
-            send msgs
+            e = { _eventname : "error"; code : amount_illegal};
+            event e
         end
     | False =>
-        msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "newContractFailed, nLockNum invalid!"};
-        msgs = one_msg msg;
-        send msgs
+        e = { _eventname : "error"; code : lock_num_illegal};
+        event e
     end
 end
 
 transition withdraw(lockId : ByStr32, preimage : String)
-	
+
     currentBlock <- & BLOCKNUMBER;
     isLockExist <- exists lockContractSender[lockId];
     match isLockExist with
     | True =>
-	receiver <- lockContractReceiver[lockId];
+	    receiver <- lockContractReceiver[lockId];
         nLockNum <- lockContractNLockNum[lockId];
         isWithdrawable = withdrawable receiver nLockNum _sender currentBlock;
         match isWithdrawable with
@@ -226,34 +235,28 @@ transition withdraw(lockId : ByStr32, preimage : String)
                             msgs = one_msg msg;
                             send msgs
                         | None =>
-                            msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "withdraw failed, no amount!"};
-                            msgs = one_msg msg;
-                            send msgs
+                            e = { _eventname : "error"; code : amount_illegal};
+                            event e
                         end
                     | True =>
-                        msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "withdraw failed, lock contract has withdrawned!"};
-                        msgs = one_msg msg;
-                        send msgs
+                        e = { _eventname : "error"; code : withdrawn_illegal};
+                        event e
                     end
                 | True =>
-                    msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "withdraw failed, lock contract has refunded!"};
-                    msgs = one_msg msg;
-                    send msgs
+                    e = { _eventname : "error"; code : refunded_illegal};
+                    event e
                 end
             | False =>
-                msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "withdraw failed, hash lock not match!"};
-                msgs = one_msg msg;
-                send msgs
+                e = { _eventname : "error"; code : lock_id_illegal};
+                event e
             end
         | False =>
-            msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "withdraw failed, no such receiver or nLockNum more than block number!"};
-            msgs = one_msg msg;
-            send msgs
+            e = { _eventname : "error"; code : lock_num_illegal};
+            event e
         end
     | False =>
-        msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; msg : "withdraw failed, no such lockId!"};
-        msgs = one_msg msg;
-        send msgs
+        e = { _eventname : "error"; code : lock_id_illegal};
+        event e
     end
 end
 
@@ -297,28 +300,23 @@ transition refund(lockId : ByStr32)
                         msgs = one_msg msg;
                         send msgs
                     | None =>
-                        msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; code : amount_invalid ; msg : "refunded failed, no amount!"};
-                        msgs = one_msg msg;
-                        send msgs
+                        e = { _eventname : "error"; code : amount_illegal};
+                        event e
                     end
                 | True =>
-                    msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; code : lock_has_withdrawned; msg : "refund failed, lock has withdrawned!"};
-                    msgs = one_msg msg;
-                    send msgs
+                    e = { _eventname : "error"; code :  withdrawn_illegal};
+                    event e
                 end
             | True =>
-                msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; code : lock_has_refunded ; msg : "refund failed, lock contract has refunded!"};
-                msgs = one_msg msg;
-                send msgs
+                e = { _eventname : "error"; code : refunded_illegal};
+                event e
             end
         | False =>
-            msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; code : not_such_receiver; msg : "refund failed, no such sender or nLockNum less than block number!"};
-            msgs = one_msg msg;
-            send msgs
+             e = { _eventname : "error"; code : lock_num_illegal};
+             event e
         end
     | False =>
-        msg = {_tag : "Main"; _recipient : _sender; _amount : Uint128 0; code : not_such_lockId ; msg : "refund failed, no such lockId!"};
-        msgs = one_msg msg;
-        send msgs
+        e = { _eventname : "error"; code : lock_id_illegal};
+        event e
     end
 end
