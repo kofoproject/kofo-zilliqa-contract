@@ -177,7 +177,7 @@ transition newLock (receiver : ByStr20, hValue : ByStr32, nLockNum : Uint128)
                 e = { _eventname : "LogHTLCNew"; lockId : lockId; sender : _sender; receiver : receiver; amount : _amount; hValue : hValue;  nLockNum: nLockNum};
                 event e;
 
-                msg = {_tag : ""; _recipient : _sender; _amount : Uint128 0; msg : final};
+                msg = {_tag : ""; _recipient : _sender; _amount : Uint128 0};
                 msgs = one_msg msg;
                 send msgs
             end
@@ -231,7 +231,7 @@ transition withdraw(lockId : ByStr32, preimage : String)
                             e = { _eventname : "LogHTLCWithdraw"; lockId : lockId; preimage : preimage};
                             event e;
 
-                            msg = {_tag : ""; _recipient : _sender; _amount : amount; msg : "withdraw success!"};
+                            msg = {_tag : ""; _recipient : _sender; _amount : amount};
                             msgs = one_msg msg;
                             send msgs
                         | None =>
@@ -296,7 +296,7 @@ transition refund(lockId : ByStr32)
                         e = { _eventname : "LogHTLCRefund"; lockId : lockId};
                         event e;
 
-                        msg = {_tag : ""; _recipient : _sender; _amount : amount; msg : "refunded success!"};
+                        msg = {_tag : ""; _recipient : _sender; _amount : amount};
                         msgs = one_msg msg;
                         send msgs
                     | None =>
